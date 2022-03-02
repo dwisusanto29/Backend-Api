@@ -15,10 +15,21 @@ class ProductController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        $data = Product::paginate(10);
+        $numRow = $request->input('numRow', 10);
+        $search = $request->has('search') ? $request->input('search') : NULL;
+        $order = $request->has('order') ? $request->input('order') : 'ASC';
+        $data = Product::orderby('id', $order)->paginate($numRow);
 
+        if($search != NULL){
+            $data = Product::where('name', 'like', '%'.$search.'%')
+                ->orWhere('detail', 'like', '%'.$search.'%')
+                ->orWhere('price', 'like', '%'.$search.'%')
+                ->orWhere('quantity', 'like', '%'.$search.'%')
+                ->orWhere('image', 'like', '%'.$search.'%')
+                ->paginate($numRow);
+        }
         return response()->json([
             'message' => 'Successfully get all products',
             'data' => $data
