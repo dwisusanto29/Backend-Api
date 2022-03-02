@@ -33,7 +33,7 @@ class ProductController extends Controller
         ]);
 
         if($validator->fails()){
-            return response()->json($validator->errors()->toJson(), 400);
+            return response()->json(['message' => $validator->errors()], 400);
         }
 
         $check_product = Product::where('name', $request->name)->first();
