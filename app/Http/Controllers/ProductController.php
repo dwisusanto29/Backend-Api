@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
-use Illuminate\Auth\Events\Validated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 
 class ProductController extends Controller
 {
@@ -26,10 +27,14 @@ class ProductController extends Controller
 
     public function create(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'price' => 'required|numeric',
         ]);
+
+        if($validator->fails()){
+            return response()->json($validator->errors()->toJson(), 400);
+        }
 
         $check_product = Product::where('name', $request->name)->first();
         if($check_product){
@@ -38,23 +43,33 @@ class ProductController extends Controller
             ], 400);
         }
 
-        $product = new Product();
-        $product->name = $request->name;
-        $product->price = $request->price;
-        $product->detail = $request->detail;
-        $product->image = $request->image;
-        $product->save();
+        DB::beginTransaction();
+        try{
+            $product = new Product();
+            $product->name = $request->name;
+            $product->price = $request->price;
+            $product->detail = $request->detail;
+            $product->image = $request->image;
+            $product->user_id = Auth::user()->id;
+            $product->save();
 
-        return response()->json([
-            'message' => 'Successfully create product',
-            'data' => $product
-        ], 201);
+            DB::commit();
+            return response()->json([
+                'message' => 'Product created successfully',
+                'data' => $product
+            ], 201);
 
+        } catch(\Exception $e){
+            // DB::rollback();
+            return response()->json([
+                'message' => 'Something went wrong'
+            ], 500);
+        }
     }
 
     public function show(Request $request)
     {
-        $product = Product::find($request->input('id'));
+        $product = Product::find($request->id);
 
         if(!$product){
             return response()->json([
@@ -79,12 +94,17 @@ class ProductController extends Controller
     {
         $product_id = $request->input('id');
         $product = Product::find($product_id);
+        $product_name = $request->has('name') ? $request->input('name') : $product->name;
+        $product_price = $request->has('price') ? $request->input('price') : $product->price;
+        $product_detail = $request->has('detail') ? $request->input('detail') : $product->detail;
+        $product_image = $request->has('image') ? $request->input('image') : $product->image;
         DB::beginTransaction();
         try{
-            $product->name = $request->name;
-            $product->price = $request->price;
-            $product->detail = $request->detail;
-            $product->image = $request->image;
+            $product->name = $product_name;
+            $product->price = $product_price;
+            $product->detail = $product_detail;
+            $product->image = $product_image;
+            $product->user_id = Auth::user()->id;
             $product->save();
 
             DB::commit();

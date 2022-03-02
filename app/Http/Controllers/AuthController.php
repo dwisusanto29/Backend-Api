@@ -7,19 +7,23 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
     public function register(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
         ]);
 
-        $checkUser = User::where('email', $request->email)->first();
+        if($validator->fails()){
+            return response()->json($validator->errors()->toJson(), 400);
+        }
 
+        $checkUser = User::where('email', $request->email)->first();
         if($checkUser){
             return response()->json([
                 'message' => 'User already exists'
@@ -35,12 +39,13 @@ class AuthController extends Controller
             $user->save();
 
             $token = $user->createToken('appToken')->plainTextToken;
-
+            DB::commit();
             return response()->json([
                 'message' => 'User created successfully',
                 'user' => $user,
                 'token' => $token
             ], 201);
+
         } catch(\Exception $e){
             DB::rollback();
             return response()->json([
@@ -62,18 +67,17 @@ class AuthController extends Controller
     public function login(Request $request){
         $request->validate([
             'email' => 'required|string|email',
-            'password' => 'required|string',
-            'remember_me' => 'boolean'
+            'password' => 'required|string'
         ]);
 
-        $credentials = request(['email', 'password']);
-        if(!Auth::attempt($credentials)){
+        //Check email
+        $user = User::where('email', $request->email)->first();
+        if(!$user || !Hash::check($request->password, $user->password)){
             return response()->json([
-                'message' => 'Unauthorized'
-            ], 401);
+                'message' => 'User not found'
+            ], 404);
         }
 
-        $user = $request->user();
         $tokenResult = $user->createToken('appToken');
         $token = $tokenResult->plainTextToken;
 
