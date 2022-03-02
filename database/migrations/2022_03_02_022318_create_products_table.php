@@ -18,8 +18,10 @@ class CreateProductsTable extends Migration
             $table->string('name');
             $table->string('detail')->nullable();
             $table->decimal('price', 10, 2)->nullable();
+            $table->integer('quantity')->nullable();
             $table->string('image')->nullable();
-            $table->integer('user_id')->unsigned();
+            $table->integer('created_by')->unsigned();
+            $table->integer('updated_by')->nullable();
             $table->timestamps();
         });
     }

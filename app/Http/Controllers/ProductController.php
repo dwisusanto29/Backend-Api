@@ -17,7 +17,7 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $data = Product::all();
+        $data = Product::paginate(10);
 
         return response()->json([
             'message' => 'Successfully get all products',
@@ -50,7 +50,8 @@ class ProductController extends Controller
             $product->price = $request->price;
             $product->detail = $request->detail;
             $product->image = $request->image;
-            $product->user_id = Auth::user()->id;
+            $product->quantity = $request->quantity;
+            $product->created_by = Auth::user()->id;
             $product->save();
 
             DB::commit();
@@ -98,13 +99,15 @@ class ProductController extends Controller
         $product_price = $request->has('price') ? $request->input('price') : $product->price;
         $product_detail = $request->has('detail') ? $request->input('detail') : $product->detail;
         $product_image = $request->has('image') ? $request->input('image') : $product->image;
+        $product->quantity = $request->has('quantity') ? $request->input('quantity') : $product->quantity;
         DB::beginTransaction();
         try{
             $product->name = $product_name;
             $product->price = $product_price;
             $product->detail = $product_detail;
             $product->image = $product_image;
-            $product->user_id = Auth::user()->id;
+            $product->quantity = $product->quantity;
+            $product->updated_by = Auth::user()->id;
             $product->save();
 
             DB::commit();
