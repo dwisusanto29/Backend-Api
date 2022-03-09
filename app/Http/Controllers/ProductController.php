@@ -22,12 +22,12 @@ class ProductController extends Controller
         $order = $request->has('order') ? $request->input('order') : 'ASC';
         $data = Product::orderby('id', $order)->paginate($numRow);
 
-        if($search != NULL){
-            $data = Product::where('name', 'like', '%'.$search.'%')
-                ->orWhere('detail', 'like', '%'.$search.'%')
-                ->orWhere('price', 'like', '%'.$search.'%')
-                ->orWhere('quantity', 'like', '%'.$search.'%')
-                ->orWhere('image', 'like', '%'.$search.'%')
+        if ($search != NULL) {
+            $data = Product::where('name', 'ilike', '%' . $search . '%')
+                ->orWhere('detail', 'ilike', '%' . $search . '%')
+                ->orWhere('price', 'ilike', '%' . $search . '%')
+                ->orWhere('quantity', 'ilike', '%' . $search . '%')
+                ->orWhere('image', 'ilike', '%' . $search . '%')
                 ->paginate($numRow);
         }
         return response()->json([
@@ -43,19 +43,19 @@ class ProductController extends Controller
             'price' => 'required|numeric',
         ]);
 
-        if($validator->fails()){
+        if ($validator->fails()) {
             return response()->json(['message' => $validator->errors()], 400);
         }
 
         $check_product = Product::where('name', $request->name)->first();
-        if($check_product){
+        if ($check_product) {
             return response()->json([
                 'message' => 'Product already exists'
             ], 400);
         }
 
         DB::beginTransaction();
-        try{
+        try {
             $product = new Product();
             $product->name = $request->name;
             $product->price = $request->price;
@@ -70,8 +70,7 @@ class ProductController extends Controller
                 'message' => 'Product created successfully',
                 'data' => $product
             ], 201);
-
-        } catch(\Exception $e){
+        } catch (\Exception $e) {
             // DB::rollback();
             return response()->json([
                 'message' => 'Something went wrong'
@@ -79,11 +78,12 @@ class ProductController extends Controller
         }
     }
 
-    public function show(Request $request)
+    public function show(Request $request, $id)
     {
-        $product = Product::find($request->id);
+        $product_id = $request->has('product_id') ? $request->input('product_id') : $id;
+        $product = Product::find($product_id);
 
-        if(!$product){
+        if (!$product) {
             return response()->json([
                 'message' => 'Product not found'
             ], 404);
@@ -102,9 +102,9 @@ class ProductController extends Controller
      * @param  \App\Models\Product  $product
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request)
+    public function update(Request $request, $id)
     {
-        $product_id = $request->input('id');
+        $product_id = $request->has('id') ? $request->input('id') : $id;
         $product = Product::find($product_id);
         $product_name = $request->has('name') ? $request->input('name') : $product->name;
         $product_price = $request->has('price') ? $request->input('price') : $product->price;
@@ -112,7 +112,7 @@ class ProductController extends Controller
         $product_image = $request->has('image') ? $request->input('image') : $product->image;
         $product->quantity = $request->has('quantity') ? $request->input('quantity') : $product->quantity;
         DB::beginTransaction();
-        try{
+        try {
             $product->name = $product_name;
             $product->price = $product_price;
             $product->detail = $product_detail;
@@ -126,7 +126,7 @@ class ProductController extends Controller
                 'message' => 'Successfully update product',
                 'data' => $product
             ], 201);
-        } catch(\Exception $e){
+        } catch (\Exception $e) {
             DB::rollback();
             return response()->json([
                 'message' => 'Something went wrong'
@@ -140,19 +140,19 @@ class ProductController extends Controller
      * @param  \App\Models\Product  $product
      * @return \Illuminate\Http\Response
      */
-    public function delete(Request $request)
+    public function delete(Request $request, $id)
     {
-        $product_id = $request->input('id');
+        $product_id = $request->has('id') ? $request->input('id') : $id;
         $product = Product::find($product_id);
 
-        if(!$product){
+        if (!$product) {
             return response()->json([
                 'message' => 'Product not found'
             ], 404);
         }
 
         DB::beginTransaction();
-        try{
+        try {
             $product->delete();
 
             DB::commit();
@@ -160,12 +160,11 @@ class ProductController extends Controller
                 'message' => 'Successfully delete product',
                 'data' => $product
             ], 200);
-        } catch(\Exception $e){
+        } catch (\Exception $e) {
             DB::rollback();
             return response()->json([
                 'message' => 'Something went wrong'
             ], 500);
         }
     }
-
 }
